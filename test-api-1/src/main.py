@@ -4,6 +4,12 @@ import uvicorn
 import sys
 import os
 
+# Test Api 1 - Numpy endpoint example
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
 # Get API name from environment or default
 API_NAME = os.environ.get("API_NAME", "Test API")
 
@@ -53,21 +59,33 @@ async def info():
 
 @app.get("/test")
 async def test():
-    """Test endpoint with sample data"""
+    """Test endpoint with sample data, customized by API_NAME"""
+    
+    sample_list = [1, 2, 3, 4, 5]
+    data_payload = {}
+    data_type = "default"
+
+    if np:
+        try:
+            np_array = np.array(sample_list) * 10
+            data_payload = np_array.tolist() # Convert to list for JSON
+            data_type = "numpy_array_as_list"
+        except Exception as e:
+            data_payload = {"error": f"Numpy processing failed: {e}"}
+            data_type = "error"
+    else:
+        data_payload = {"error": "Numpy is not installed"}
+        data_type = "error"
+    
     return {
         "status": "success",
         "api_name": API_NAME,
-        "data": {
-            "sample_string": "Hello from Python!",
-            "sample_number": 42,
-            "sample_array": [1, 2, 3, 4, 5],
-            "sample_object": {
-                "nested_key": "nested_value",
-                "nested_number": 99
-            }
-        },
-        "message": "This is sample test data"
+        "data_type": data_type,
+        "data": data_payload,
+        "message": f"This is test data from {API_NAME}"
     }
+
+
 
 @app.get("/shutdown")
 async def shutdown():
@@ -79,6 +97,9 @@ async def shutdown():
     # (close database connections, save state, etc.)
     
     print(f"[{API_NAME}] Shutdown complete")
+    # NOTE: os._exit(0) is what causes the network error on the client,
+    # as it terminates the process immediately without sending a response.
+    # This is expected.
     os._exit(0)
 
 if __name__ == "__main__":
@@ -91,7 +112,9 @@ if __name__ == "__main__":
             print(f"[{API_NAME}] Invalid port argument: {sys.argv[1]}, using default 8000")
     
     print(f"[{API_NAME}] Starting on port {port}...")
+    print(f"[{API_NAME}] API_NAME: {API_NAME}")
     print(f"[{API_NAME}] Health check available at: http://127.0.0.1:{port}/health")
+    print(f"[{API_NAME}] Test data available at: http://127.0.0.1:{port}/test")
     
     # Run the FastAPI app
     uvicorn.run(
