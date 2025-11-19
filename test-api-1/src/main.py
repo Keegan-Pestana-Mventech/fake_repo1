@@ -9,6 +9,11 @@ try:
     import numpy as np
 except ImportError:
     np = None
+    
+# try:
+#     import numpy_financial as npf   
+# except ImportError:
+#     npf = None
 
 # Get API name from environment or default
 API_NAME = os.environ.get("API_NAME", "Test API")
