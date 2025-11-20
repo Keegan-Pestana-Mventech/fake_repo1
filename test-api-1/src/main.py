@@ -8,39 +8,10 @@ import traceback
 # Get API name from environment or default
 API_NAME = os.environ.get("API_NAME", "Test API")
 
-# CRITICAL: Try imports BEFORE creating FastAPI app
-# This ensures we catch import errors early with detailed logging
-print(f"[{API_NAME}] Starting import verification...")
-
-# Test numpy import
+# No external library imports - testing basic FastAPI functionality
+print(f"[{API_NAME}] Starting without pandas/numpy dependencies...")
 numpy_available = False
-np = None
-try:
-    import numpy as np
-    numpy_available = True
-    print(f"[{API_NAME}] ✓ numpy {np.__version__} loaded from {np.__file__}")
-except ImportError as e:
-    print(f"[{API_NAME}] ✗ numpy import failed: {e}")
-    traceback.print_exc()
-except Exception as e:
-    print(f"[{API_NAME}] ✗ numpy error: {e}")
-    traceback.print_exc()
-
-# Test pandas import
 pandas_available = False
-pd = None
-try:
-    import pandas as pd
-    pandas_available = True
-    print(f"[{API_NAME}] ✓ pandas {pd.__version__} loaded from {pd.__file__}")
-except ImportError as e:
-    print(f"[{API_NAME}] ✗ pandas import failed: {e}")
-    traceback.print_exc()
-except Exception as e:
-    print(f"[{API_NAME}] ✗ pandas error: {e}")
-    traceback.print_exc()
-
-print(f"[{API_NAME}] Import verification complete")
 print(f"[{API_NAME}] numpy_available: {numpy_available}")
 print(f"[{API_NAME}] pandas_available: {pandas_available}")
 
@@ -82,13 +53,13 @@ async def debug_imports():
     import_status = {
         "numpy": {
             "available": numpy_available,
-            "version": np.__version__ if numpy_available else None,
-            "path": np.__file__ if numpy_available else None
+            "version": None,
+            "path": None
         },
         "pandas": {
             "available": pandas_available,
-            "version": pd.__version__ if pandas_available else None,
-            "path": pd.__file__ if pandas_available else None
+            "version": None,
+            "path": None
         }
     }
     return {
@@ -142,70 +113,42 @@ async def test():
     print(f"[{API_NAME}] pandas_available: {pandas_available}")
     
     sample_list = [1, 2, 3, 4, 5]
-    data_payload = {}
-    data_type = "default"
-    error_details = None
     
-    # Try numpy processing
-    if numpy_available and np:
-        try:
-            print(f"[{API_NAME}] Attempting numpy processing...")
-            np_array = np.array(sample_list) * 10
-            data_payload = np_array.tolist()
-            data_type = "numpy_array_as_list"
-            print(f"[{API_NAME}] ✓ numpy processing successful")
-        except Exception as e:
-            print(f"[{API_NAME}] ✗ numpy processing failed: {e}")
-            traceback.print_exc()
-            error_details = {
-                "stage": "numpy_processing",
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }
-            data_payload = {"error": f"Numpy processing failed: {e}"}
-            data_type = "error"
-    
-    # Try pandas processing (if numpy failed or not available)
-    elif pandas_available and pd:
-        try:
-            print(f"[{API_NAME}] Attempting pandas processing...")
-            df = pd.DataFrame({
-                'column_a': sample_list,
-                'column_b': [x * 2 for x in sample_list]
-            })
-            data_payload = df.to_dict('records')
-            data_type = "pandas_dataframe_as_dict"
-            print(f"[{API_NAME}] ✓ pandas processing successful")
-        except Exception as e:
-            print(f"[{API_NAME}] ✗ pandas processing failed: {e}")
-            traceback.print_exc()
-            error_details = {
-                "stage": "pandas_processing",
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }
-            data_payload = {"error": f"Pandas processing failed: {e}"}
-            data_type = "error"
-    else:
-        error_details = {
-            "stage": "import",
-            "error": "Neither numpy nor pandas is available",
-            "numpy_available": numpy_available,
-            "pandas_available": pandas_available
+    # Simple data processing without external libraries
+    try:
+        print(f"[{API_NAME}] Processing data with pure Python...")
+        processed_data = [x * 10 for x in sample_list]
+        data_payload = {
+            "original": sample_list,
+            "processed": processed_data,
+            "sum": sum(processed_data),
+            "count": len(processed_data)
         }
-        data_payload = {"error": "Neither numpy nor pandas is available"}
-        data_type = "error"
-    
-    response = {
-        "status": "success" if data_type != "error" else "error",
-        "api_name": API_NAME,
-        "data_type": data_type,
-        "data": data_payload,
-        "message": f"This is test data from {API_NAME}"
-    }
-    
-    if error_details:
-        response["error_details"] = error_details
+        data_type = "pure_python"
+        print(f"[{API_NAME}] ✓ Data processing successful")
+        
+        response = {
+            "status": "success",
+            "api_name": API_NAME,
+            "data_type": data_type,
+            "data": data_payload,
+            "message": f"This is test data from {API_NAME}"
+        }
+    except Exception as e:
+        print(f"[{API_NAME}] ✗ Data processing failed: {e}")
+        traceback.print_exc()
+        response = {
+            "status": "error",
+            "api_name": API_NAME,
+            "data_type": "error",
+            "data": {"error": f"Processing failed: {e}"},
+            "message": f"Error in {API_NAME}",
+            "error_details": {
+                "stage": "processing",
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }
+        }
     
     return response
 
